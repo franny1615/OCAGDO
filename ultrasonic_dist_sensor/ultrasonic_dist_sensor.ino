@@ -11,9 +11,12 @@ const int ledPin = 13;
 const int doorPin = 7;
 
 const float parkedLow = 0;
+const float parkedLightLow = 100;
+const float parkedLight = 500;
 const float parkedHigh = 700.0;
 const float openHigh = 1000.0;
 const int gracePeriod = 100; // ms
+const float getOutGracePeriod = 30000; // ms
 
 bool isOpen = false;
 
@@ -44,7 +47,7 @@ void loop() {
     delay(gracePeriod);
   }
 
-  if (duration <= parkedHigh)
+  if (duration <= parkedLight && duration >= parkedLightLow)
   {
     digitalWrite(ledPin, HIGH);
     delay(gracePeriod);
@@ -59,7 +62,7 @@ void loop() {
   if (duration > parkedHigh && duration <= openHigh && !isOpen)
   {
     triggerDoor(1, duration); // door open
-    delay(35000); // give myself time to make sure I left
+    delay(getOutGracePeriod); // give myself time to make sure I left
     triggerDoor(2, duration); // door closed
     isOpen = true;
   }
