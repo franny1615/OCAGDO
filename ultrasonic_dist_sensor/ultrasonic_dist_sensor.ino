@@ -10,13 +10,13 @@ const int echoPin = 10;
 const int ledPin = 13;
 const int doorPin = 7;
 
-const int parkedLow = 0; 
-const int parkedHigh = 700;
-const int triggerDoorOpen = 800;
-const int triggerDoorClosed = 43000;
+const float parkedLow = 0;
+const float parkedHigh = 700.0;
+const float openHigh = 1000.0;
 const int gracePeriod = 100; // ms
 
-bool garageDoorIsOpen = false;
+bool isOpen = false;
+
 float duration;
 
 void setup() {
@@ -38,61 +38,50 @@ void loop() {
 
   duration = pulseIn(echoPin, HIGH); // at this point sensor has some current stored in it representing distance traveled, read it in, measured in microseconds
 
-  if (duration >= parkedLow && duration <= parkedHigh) // about 9 inches away, threshold
-  {
-    digitalWrite(ledPin, HIGH);
-    triggerDoor(2, duration);
-  }
-  else if (duration > triggerDoorOpen && duration < triggerDoorClosed)
+  if (duration > openHigh)
   {
     digitalWrite(ledPin, LOW);
-    triggerDoor(1, duration); // door open
-  }
-  else if (duration > triggerDoorClosed)
-  {
-    digitalWrite(ledPin, LOW);
-    triggerDoor(2, duration); // door closed
+    delay(gracePeriod);
   }
 
-  // enable when calibrating
-  // Serial.println(duration);
+  if (duration <= parkedHigh)
+  {
+    digitalWrite(ledPin, HIGH);
+    delay(gracePeriod);
+  }
+
+  if (duration >= parkedLow && duration <= parkedHigh && isOpen)
+  {
+    triggerDoor(2, duration); // door closed
+    isOpen = false;
+  }
+
+  if (duration > parkedHigh && duration <= openHigh && !isOpen)
+  {
+    triggerDoor(1, duration); // door open
+    delay(35000); // give myself time to make sure I left
+    triggerDoor(2, duration); // door closed
+    isOpen = true;
+  }
 }
 
 void triggerDoor(int eventType, float duration)
 {
-
-  bool shouldTriggerEvent = false;
   switch (eventType)
   {
     case 1: // door open
-      shouldTriggerEvent = !garageDoorIsOpen;
-      if (shouldTriggerEvent)
-      {
-        Serial.print("door was opened:");
-        Serial.print(duration);
-        Serial.println();
-      }
+      Serial.print("door was opened:");
+      Serial.print(duration);
+      Serial.println();
       break;
     case 2: // door closed
-      shouldTriggerEvent = garageDoorIsOpen;
-      if (shouldTriggerEvent)
-      {
-        Serial.print("door was closed:");
-        Serial.print(duration);
-        Serial.println();
-      }
+      Serial.print("door was closed:");
+      Serial.print(duration);
+      Serial.println();
       break;
   }
 
-  if (shouldTriggerEvent)
-  {
-    garageDoorIsOpen = !garageDoorIsOpen;
-    digitalWrite(doorPin, HIGH);
-    delay(gracePeriod); // milliseconds
-    digitalWrite(doorPin, LOW);
-  }
-  else
-  {
-    delay(gracePeriod); // milliseconds
-  }
+  digitalWrite(doorPin, HIGH);
+  delay(gracePeriod); // milliseconds
+  digitalWrite(doorPin, LOW);
 }
